@@ -2,7 +2,7 @@
 
 ## Overview
 
-AIrWave is a high-performance, voice-powered AI application that leverages **Groq** for real-time speech recognition and text generation. Designed for seamless, low-latency interactions, AIrWave transforms spoken input into meaningful conversations instantly.
+AIrWave is a high-performance, voice-powered AI application that leverages **Groq** for real-time speech recognition and text generation. Designed for seamless, low-latency interactions, AIrWave transforms spoken input into meaningful realtime speech recognition and text generation.
 
 ## Features
 

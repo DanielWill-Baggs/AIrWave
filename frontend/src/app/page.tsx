@@ -243,8 +243,8 @@ export default function Page() {
             <Terminal className="h-4 w-4" />
             <AlertTitle>Don't Forget To Add Your API Key!</AlertTitle>
             <AlertDescription>
-              Click on the microphone icon to start speaking. You can also
-              upload an audio file.
+              Click on the microphone icon to start speaking. You can also drag
+              and drop or manually upload an audio file.
             </AlertDescription>
             <AlertDescription>
               Supported audio files include mp3, mp4, mpeg, mpga, m4a, wav, and
