@@ -11,29 +11,11 @@ import {
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import { Mic, Terminal, Upload } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useDropzone } from "react-dropzone";
 
-const uploadAudio = async (file: File) => {
-  const formData = new FormData();
-  formData.append("audio", file);
-
-  const response = await fetch("/api/upload-audio", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (response.ok) {
-    const data = await response.json();
-    console.log("Upload successful:", data);
-  } else {
-    console.error("Upload failed.");
-  }
-};
-
 export default function Page() {
-  // States for transcription and AI response
   const [transcription, setTranscription] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<string>("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -41,11 +23,42 @@ export default function Page() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const recordingRef = useRef(false);
+
+  const uploadAudio = async (file: File) => {
+    console.log("uploadAudio function is called"); // Check if the function is called
+    const formData = new FormData();
+    formData.append("audio", file);
+    console.log(formData);
+    console.log(file);
+    console.log("this is the file", file);
+
+    try {
+      console.log(file);
+      const response = await fetch("http://127.0.0.1:5000/process_audio", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        setTranscription(data.transcription);
+        setAiResponse(data.response);
+      } else {
+        throw new Error("Failed to upload audio");
+      }
+    } catch (error) {
+      console.error("Error uploading audio:", error);
+    }
+  };
+
   const onDrop = (acceptedFiles: File[]) => {
+    console.log("Files dropped:", acceptedFiles);
     const file = acceptedFiles[0];
     if (file) {
       setAudioFile(file);
-      uploadAudio(file); // Upload the file when it's dropped
+      uploadAudio(file);
     }
   };
 
@@ -56,36 +69,75 @@ export default function Page() {
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File selected:", event.target.files);
     const file = event.target.files?.[0];
     if (file) {
-      console.log("File selected:", file);
+      uploadAudio(file);
     }
   };
 
   const handleMicClick = () => {
-    if (recording) {
+    if (recordingRef.current) {
+      console.log("Stopping recording...");
       stopRecording();
+      recordingRef.current = false;
     } else {
+      console.log("Starting recording...");
       startRecording();
+      recordingRef.current = true;
     }
   };
 
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioRecorderRef.current = new MediaRecorder(stream);
-    audioRecorderRef.current.ondataavailable = (event) => {
-      const chunks = [event.data];
-      const blob = new Blob(chunks, { type: "audio/wav" });
-      setAudioBlob(blob);
-    };
+  let chunks: Blob[] = [];
 
-    audioRecorderRef.current.start();
-    setRecording(true);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      audioRecorderRef.current = new MediaRecorder(stream);
+
+      audioRecorderRef.current.ondataavailable = (event) => {
+        chunks.push(event.data);
+      };
+
+      audioRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/wav" });
+        setAudioBlob(blob);
+        chunks = [];
+      };
+
+      audioRecorderRef.current.start();
+      setRecording(true);
+    } catch (err) {
+      console.error("Error starting recording:", err);
+    }
   };
 
-  const stopRecording = () => {
-    audioRecorderRef.current?.stop();
+  const stopRecording = async () => {
+    if (audioRecorderRef.current) {
+      audioRecorderRef.current.stop();
+    }
     setRecording(false);
+
+    if (audioBlob) {
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.wav");
+
+      console.log(formData);
+      console.log(audioBlob);
+      try {
+        const response = await fetch("http://127.0.0.1:5000/process_audio", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+        console.log("Transcription:", result.transcription);
+        console.log("AI Response:", result.response);
+      } catch (error) {
+        console.error("Error uploading the audio file:", error);
+      }
+    }
   };
 
   const { getRootProps, getInputProps } = useDropzone({
