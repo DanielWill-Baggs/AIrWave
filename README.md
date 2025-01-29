@@ -66,17 +66,14 @@ AIrWave is a high-performance, voice-powered AI application that leverages **Gro
    npm run dev
    ```
 
+## Project Showcase
+
+![AIrWave Showcase](frontend/public/AIrWaveShowcase.png)
+
 ## Reference Material
 
 This project is inspired by and references:
 [Groq and Gradio for Realtime Voice-Powered AI Applications](https://github.com/groq/groq-api-cookbook/blob/main/tutorials/groq-gradio/groq-gradio-tutorial.ipynb)
-
-## Future Enhancements
-
-- **Enhanced Voice Controls**
-- **Multilingual Support**
-- **Customizable AI Personalities**
-- **Integration with Messaging Platforms**
 
 ## Contributing
 
