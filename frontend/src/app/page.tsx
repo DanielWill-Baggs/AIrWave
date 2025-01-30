@@ -24,17 +24,39 @@ export default function Page() {
   const audioRecorderRef = useRef<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const recordingRef = useRef(false);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // Function to adjust textarea height
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "auto"; // Reset height to auto
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 240)}px`;
+  };
+
+  useEffect(() => {
+    const transcriptionTextarea = document.getElementById(
+      "transcription-textarea"
+    ) as HTMLTextAreaElement;
+    if (transcriptionTextarea) {
+      adjustTextareaHeight(transcriptionTextarea);
+    }
+  }, [transcription]);
+
+  useEffect(() => {
+    const aiResponseTextarea = document.getElementById(
+      "ai-response-textarea"
+    ) as HTMLTextAreaElement;
+    if (aiResponseTextarea) {
+      adjustTextareaHeight(aiResponseTextarea);
+    }
+  }, [aiResponse]);
 
   const uploadAudio = async (file: File) => {
-    console.log("uploadAudio function is called"); // Check if the function is called
+    console.log("uploadAudio function is called");
+    setLoading(true); // Start loading
     const formData = new FormData();
     formData.append("audio", file);
-    console.log(formData);
-    console.log(file);
-    console.log("this is the file", file);
 
     try {
-      console.log(file);
       const response = await fetch("http://127.0.0.1:5000/process_audio", {
         method: "POST",
         body: formData,
@@ -42,7 +64,6 @@ export default function Page() {
 
       if (response.ok) {
         const data = await response.json();
-
         setTranscription(data.transcription);
         setAiResponse(data.response);
       } else {
@@ -50,8 +71,38 @@ export default function Page() {
       }
     } catch (error) {
       console.error("Error uploading audio:", error);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
+
+  const Loader = () => (
+    <div className="loader-container flex justify-center items-center">
+      <div className="w-32 h-32 relative flex items-center justify-center">
+        <div className="absolute inset-0 rounded-xl bg-blue-500/20 blur-xl animate-pulse"></div>
+
+        <div className="w-full h-full relative flex items-center justify-center">
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-spin blur-sm"></div>
+
+          <div className="absolute inset-1 bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden">
+            <div className="flex gap-1 items-center">
+              <div className="w-1.5 h-12 bg-cyan-500 rounded-full animate-[bounce_1s_ease-in-out_infinite]"></div>
+              <div className="w-1.5 h-12 bg-blue-500 rounded-full animate-[bounce_1s_ease-in-out_infinite_0.1s]"></div>
+              <div className="w-1.5 h-12 bg-indigo-500 rounded-full animate-[bounce_1s_ease-in-out_infinite_0.2s]"></div>
+              <div className="w-1.5 h-12 bg-purple-500 rounded-full animate-[bounce_1s_ease-in-out_infinite_0.3s]"></div>
+            </div>
+
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-blue-500/10 to-transparent animate-pulse"></div>
+          </div>
+        </div>
+
+        <div className="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
+        <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-ping delay-100"></div>
+        <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-cyan-500 rounded-full animate-ping delay-200"></div>
+        <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping delay-300"></div>
+      </div>
+    </div>
+  );
 
   const onDrop = (acceptedFiles: File[]) => {
     console.log("Files dropped:", acceptedFiles);
@@ -123,8 +174,6 @@ export default function Page() {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.wav");
 
-      console.log(formData);
-      console.log(audioBlob);
       try {
         const response = await fetch("http://127.0.0.1:5000/process_audio", {
           method: "POST",
@@ -165,29 +214,48 @@ export default function Page() {
 
         <div className="flex flex-1 flex-col gap-4 p-4 z-20">
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="rounded-xl ">
+            <div className="rounded-xl">
               <textarea
-                className="w-full h-60 p-4 bg-slate-700 text-white rounded-lg"
+                id="transcription-textarea"
+                className="w-full p-4 bg-slate-700 text-white rounded-lg resize-none overflow-hidden"
                 placeholder="Transcription will appear here..."
                 value={transcription}
-                onChange={(e) => setTranscription(e.target.value)}
+                onChange={(e) => {
+                  setTranscription(e.target.value);
+                  adjustTextareaHeight(e.target);
+                }}
+                style={{ lineHeight: "1.5", padding: "1rem" }}
               />
             </div>
-            <div className="relative rounded-xl h-60">
-              <Image
-                className="rounded-xl"
-                src="/AIrwave.jpg"
-                alt="AIrwave"
-                fill
-                style={{ objectFit: "cover" }}
-              />
+            <div className="rounded-xl">
+              {loading ? (
+                <div className="flex justify-center items-center h-60">
+                  <Loader />
+                </div>
+              ) : (
+                <div className="relative rounded-xl h-60">
+                  <Image
+                    className="rounded-xl"
+                    src="/AIrwave.jpg"
+                    alt="AIrwave"
+                    fill
+                    style={{ objectFit: "cover" }}
+                  />
+                </div>
+              )}
             </div>
-            <div className="rounded-xl ">
+
+            <div className="rounded-xl">
               <textarea
-                className="w-full h-60 p-4 bg-slate-700 text-white rounded-lg"
+                id="ai-response-textarea"
+                className="w-full p-4 bg-slate-700 text-white rounded-lg resize-none overflow-hidden"
                 placeholder="AI's response will appear here..."
                 value={aiResponse}
-                onChange={(e) => setAiResponse(e.target.value)}
+                onChange={(e) => {
+                  setAiResponse(e.target.value);
+                  adjustTextareaHeight(e.target);
+                }}
+                style={{ lineHeight: "1.5", padding: "1rem" }}
               />
             </div>
           </div>
